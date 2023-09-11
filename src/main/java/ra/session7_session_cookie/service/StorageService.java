@@ -1,9 +1,7 @@
 package ra.session7_session_cookie.service;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.services.s3.model.*;
 import com.amazonaws.util.IOUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 
 @Service
 @Slf4j
@@ -28,9 +27,10 @@ public class StorageService {
     public String uploadFile(MultipartFile file) {
         File fileObj = convertMultiPartFileToFile(file);
         String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-        s3Client.putObject(new PutObjectRequest(bucketName, fileName, fileObj));
+        s3Client.putObject(new PutObjectRequest(bucketName, fileName, fileObj).withCannedAcl(CannedAccessControlList.PublicRead));
+        URL s3Url= s3Client.getUrl(bucketName, fileName);
         fileObj.delete();
-        return "File uploaded : " + fileName;
+        return "File uploaded : "+ s3Url.toExternalForm();
     }
 
 
@@ -55,7 +55,8 @@ public class StorageService {
 
     private File convertMultiPartFileToFile(MultipartFile file) {
         File convertedFile = new File(file.getOriginalFilename());
-        try (FileOutputStream fos = new FileOutputStream(convertedFile)) {
+        try (
+            FileOutputStream fos = new FileOutputStream(convertedFile)) {
             fos.write(file.getBytes());
         } catch (IOException e) {
             log.error("Error converting multipartFile to file", e);
